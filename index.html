@@ -1693,7 +1693,8 @@
                 if (this.audioEl) {
                     // Cache busting: luôn thêm tham số thời gian để ép trình duyệt xóa sạch bộ nhớ đệm bài cũ và nạp bài mới 100%
                     const cacheBuster = Date.now();
-                    this.audioEl.src = "music.mp3?v=" + cacheBuster;
+                    // Ưu tiên phát file bài mới nhac.mp3 trước
+                    this.audioEl.src = "nhac.mp3?v=" + cacheBuster;
 
                     this.audioEl.addEventListener('play', () => {
                         this.isPlaying = true;
@@ -1706,10 +1707,10 @@
                     });
 
                     this.audioEl.addEventListener('error', () => {
-                        // Nếu music.mp3 không có, thử tìm file nhac.mp3
+                        // Nếu nhac.mp3 không có, thử tìm file music.mp3
                         if (!this.triedAlternative) {
                             this.triedAlternative = true;
-                            this.audioEl.src = "nhac.mp3?v=" + cacheBuster;
+                            this.audioEl.src = "music.mp3?v=" + cacheBuster;
                             return;
                         }
                         // Nếu cả 2 đều không có thì im lặng hoàn toàn, không phát nhạc điện tử
