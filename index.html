@@ -1685,45 +1685,43 @@
         // =========================================================================
         class CyberAudioPlayer {
             constructor() {
-                this.ctx = null;
                 this.audioEl = document.getElementById('bgMusic');
                 this.isPlaying = false;
-                this.synthPlaying = false;
-                this.timer = null;
-                this.step = 0;
                 this.hasAudioFile = true;
+                this.triedAlternative = false;
 
                 if (this.audioEl) {
-                    if (!this.audioEl.src) {
-                        this.audioEl.src = "music.mp3";
-                    }
+                    // Cache busting: luôn thêm tham số thời gian để ép trình duyệt xóa sạch bộ nhớ đệm bài cũ và nạp bài mới 100%
+                    const cacheBuster = Date.now();
+                    this.audioEl.src = "music.mp3?v=" + cacheBuster;
 
                     this.audioEl.addEventListener('play', () => {
                         this.isPlaying = true;
-                        this.synthPlaying = false;
                         updateAudioUI(true);
                     });
 
                     this.audioEl.addEventListener('pause', () => {
-                        if (!this.synthPlaying) {
-                            this.isPlaying = false;
-                            updateAudioUI(false);
-                        }
+                        this.isPlaying = false;
+                        updateAudioUI(false);
                     });
 
                     this.audioEl.addEventListener('error', () => {
+                        // Nếu music.mp3 không có, thử tìm file nhac.mp3
+                        if (!this.triedAlternative) {
+                            this.triedAlternative = true;
+                            this.audioEl.src = "nhac.mp3?v=" + cacheBuster;
+                            return;
+                        }
+                        // Nếu cả 2 đều không có thì im lặng hoàn toàn, không phát nhạc điện tử
                         this.hasAudioFile = false;
+                        this.isPlaying = false;
+                        updateAudioUI(false);
                     });
                 }
             }
 
             init() {
-                if (!this.ctx) {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (AudioCtx) {
-                        this.ctx = new AudioCtx();
-                    }
-                }
+                // Không khởi tạo AudioContext synthwave
             }
 
             start() {
@@ -1734,46 +1732,21 @@
                             this.isPlaying = true;
                             updateAudioUI(true);
                         }).catch(() => {
-                            // Bị trình duyệt chặn khi chưa chạm màn hình: giữ isPlaying = false chờ chạm
                             this.isPlaying = false;
                             updateAudioUI(false);
                         });
                         return;
                     }
                 }
-                this.startSynth();
-            }
-
-            startSynth() {
-                this.init();
-                if (!this.ctx) return;
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume().then(() => {
-                        this.isPlaying = true;
-                        this.synthPlaying = true;
-                        this.scheduleStep();
-                        updateAudioUI(true);
-                    }).catch(() => {
-                        this.isPlaying = false;
-                        updateAudioUI(false);
-                    });
-                    return;
-                }
-                this.isPlaying = true;
-                this.synthPlaying = true;
-                this.scheduleStep();
-                updateAudioUI(true);
+                // Nếu không có file nhạc thì im lặng 100%, không phát nhạc điện tử
+                this.isPlaying = false;
+                updateAudioUI(false);
             }
 
             stop() {
                 this.isPlaying = false;
-                this.synthPlaying = false;
                 if (this.audioEl) {
                     try { this.audioEl.pause(); } catch (e) {}
-                }
-                if (this.timer) {
-                    clearTimeout(this.timer);
-                    this.timer = null;
                 }
                 updateAudioUI(false);
             }
